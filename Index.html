@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pokémon Open World - FREE</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #2e7d32; }
+        
+        /* Die Map */
+        #map { 
+            position: absolute; width: 2000px; height: 2000px; 
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 100px 100px;
+            transition: transform 0.1s linear;
+        }
+
+        /* Der Spieler */
+        #player {
+            position: absolute; top: 50%; left: 50%;
+            width: 40px; height: 40px; background: #ff5252;
+            border: 3px solid white; border-radius: 10px;
+            transform: translate(-50%, -50%); z-index: 100;
+        }
+
+        /* UI */
+        #ui-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 200;
+        }
+        .stats { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; pointer-events: auto; }
+        
+        /* Steuerung */
+        #controls {
+            position: absolute; bottom: 30px; width: 100%;
+            display: flex; justify-content: space-around; pointer-events: auto;
+        }
+        .joy-btn {
+            width: 70px; height: 70px; background: rgba(255,255,255,0.3);
+            border: 2px solid white; border-radius: 50%; color: white;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="map"></div>
+    <div id="player"></div>
+    
+    <div id="ui-overlay">
+        <div class="stats">Pokémon gefangen: <span id="poke-count">0</span></div>
+        
+        <div id="controls">
+            <div class="joy-btn" onclick="move(0, 50)">HOCH</div>
+            <div class="joy-btn" onclick="move(0, -50)">RUNTER</div>
+            <div class="joy-btn" onclick="move(50, 0)">LINKS</div>
+            <div class="joy-btn" onclick="move(-50, 0)">RECHTS</div>
+            <div class="joy-btn" style="background: #ffd700; color: black;" onclick="catchPoke()">FANGEN</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let posX = 0; let posY = 0; let count = 0;
+    const map = document.getElementById('map');
+
+    function move(dx, dy) {
+        posX += dx; posY += dy;
+        map.style.transform = `translate(${posX}px, ${posY}px)`;
+        checkSpawn();
+    }
+
+    function checkSpawn() {
+        if(Math.random() > 0.8) {
+            console.log("Ein wildes Pokémon ist in der Nähe!");
+        }
+    }
+
+    function catchPoke() {
+        count++;
+        document.getElementById('poke-count').innerText = count;
+        alert("Du hast ein wildes Pokémon gefangen!");
+    }
+</script>
+
+</body>
+</html>
