@@ -3,196 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poké-3D Living World</title>
+    <title>Poké-Open-World Engine</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Arial Rounded MT Bold', sans-serif; touch-action: none; }
-        
-        #viewport { width: 100vw; height: 100vh; perspective: 1000px; overflow: hidden; }
-
-        #game-container {
-            position: absolute; width: 5000px; height: 5000px;
-            background: #4caf50;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.05) 2px, transparent 2px),
-                linear-gradient(90deg, rgba(255,255,255,0.05) 2px, transparent 2px);
-            background-size: 100px 100px;
-            transform-style: preserve-3d;
-            transform: rotateX(50deg);
-            transition: transform 0.25s cubic-bezier(0.1, 0.5, 0.1, 1);
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        #viewport { width: 100vw; height: 100vh; perspective: 1000px; }
+        #world { 
+            position: absolute; width: 10000px; height: 10000px; 
+            background: #2d5a27; transform-style: preserve-3d;
+            transition: transform 0.1s linear;
         }
-
-        /* 3D Objekte */
-        .object {
-            position: absolute; display: flex; align-items: center; justify-content: center;
-            transform: rotateX(-50deg); transform-origin: bottom;
-            filter: drop-shadow(0 10px 5px rgba(0,0,0,0.2));
-            pointer-events: none;
+        .chunk-grid {
+            position: absolute; width: 100%; height: 100%;
+            background-image: grid; /* Simuliert Sektoren */
         }
-        .tree { font-size: 60px; z-index: 10; }
-        .item { font-size: 30px; z-index: 5; animation: float 2s infinite alternate; }
-        .poke { font-size: 40px; z-index: 20; }
-
-        @keyframes float { from { margin-bottom: 0px; } to { margin-bottom: 15px; } }
-
-        /* Spieler */
         #player {
-            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; font-size: 45px;
-            display: flex; align-items: center; justify-content: center;
-            transform: translate(-50%, -50%) rotateX(-50deg); z-index: 100;
+            position: absolute; top: 50%; left: 50%; font-size: 40px;
+            transform: translate(-50%, -50%) rotateX(-30deg); z-index: 1000;
         }
-
-        .walking { animation: walkAnim 0.2s infinite alternate; }
-        @keyframes walkAnim {
-            from { transform: translate(-50%, -50%) rotateX(-50deg) translateY(0); }
-            to { transform: translate(-50%, -50%) rotateX(-50deg) translateY(-15px); }
+        .entity {
+            position: absolute; transform: rotateX(-45deg);
+            font-size: 30px; transition: opacity 0.5s;
         }
-
-        /* UI */
-        #ui-top { position: absolute; top: 10px; left: 10px; right: 10px; color: white; z-index: 200; pointer-events: none; }
-        .status-box { background: rgba(0,0,0,0.8); border: 2px solid #fff; padding: 10px; border-radius: 12px; width: 180px; pointer-events: auto; }
-        .bar { width: 100%; height: 10px; background: #333; border-radius: 5px; margin: 4px 0; overflow: hidden; border: 1px solid #555; }
-        #hp-fill { width: 100%; height: 100%; background: #4caf50; transition: width 0.3s; }
-        #xp-fill { width: 0%; height: 100%; background: #00e5ff; transition: width 0.3s; }
-
-        /* Controls */
-        #controls { position: absolute; bottom: 25px; width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 15px; box-sizing: border-box; z-index: 300; }
-        .btn { background: rgba(255,255,255,0.4); border: 2px solid #fff; border-radius: 15px; color: #fff; height: 65px; display: flex; align-items: center; justify-content: center; font-size: 26px; backdrop-filter: blur(5px); }
-        
-        #battle-screen { position: absolute; inset: 0; background: white; z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px; text-align: center; }
+        #stats {
+            position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7);
+            color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace;
+        }
     </style>
 </head>
 <body>
 
 <div id="viewport">
-    <div id="game-container">
-        <div id="center" class="object" style="top: 2200px; left: 2200px; width: 150px; height: 150px; background: #ef5350; border: 5px solid white; border-radius: 15px; font-size: 60px;">🏥</div>
-    </div>
-    <div id="player">🧍</div>
+    <div id="world" id="map"></div>
+    <div id="player">🚶‍♂️</div>
 </div>
 
-<div id="ui-top">
-    <div class="status-box">
-        <b>Lv. <span id="lv">5</span></b> <span id="p-name">Starter</span>
-        <div class="bar"><div id="hp-fill"></div></div>
-        <div class="bar"><div id="xp-fill"></div></div>
-        <small>Bälle: <span id="balls">20</span> | Tränke: <span id="pots">0</span></small>
-    </div>
-</div>
-
-<div id="controls">
-    <div></div><div class="btn" onmousedown="startMove(0, 150)" onmouseup="stopMove()" ontouchstart="startMove(0, 150)">▲</div><div></div>
-    <div class="btn" onmousedown="startMove(150, 0)" onmouseup="stopMove()" ontouchstart="startMove(150, 0)">◀</div>
-    <div class="btn" style="background: #ffcc00; color: #000;" onclick="startBattle()">🔴</div>
-    <div class="btn" onmousedown="startMove(-150, 0)" onmouseup="stopMove()" ontouchstart="startMove(-150, 0)">▶</div>
-    <div class="btn" onclick="usePotion()" style="background: #00e5ff;">🧪</div>
-    <div class="btn" onmousedown="startMove(0, -150)" onmouseup="stopMove()" ontouchstart="startMove(0, -150)">▼</div>
-    <div></div>
-</div>
-
-<div id="battle-screen">
-    <div id="battle-enemy" style="font-size: 100px;">❓</div>
-    <h2 id="battle-msg">WILDES POKÉMON!</h2>
-    <div style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <button onclick="battleAction('attack')" style="padding:25px; background:#ff5252; color:white; border:none; border-radius:15px; font-size:20px;">ANGRIFF</button>
-        <button onclick="battleAction('catch')" style="padding:25px; background:#ffcc00; border:none; border-radius:15px; font-size:20px;">BALL</button>
-    </div>
+<div id="stats">
+    Position: <span id="pos">0, 0</span><br>
+    Geladene Objekte: <span id="obj-count">0</span>
 </div>
 
 <script>
-    let x = -2100, y = -2100, balls = 20, lv = 5, xp = 0, hp = 100, pots = 0;
-    let currentEnemy = null;
-    const container = document.getElementById('game-container');
-    const player = document.getElementById('player');
-
-    // Bäume generieren
-    for(let i=0; i<40; i++) {
-        let tree = document.createElement('div');
-        tree.className = 'object tree';
-        tree.innerHTML = "🌲";
-        tree.style.left = Math.random() * 4500 + "px";
-        tree.style.top = Math.random() * 4500 + "px";
-        container.appendChild(tree);
+    let posX = -5000, posY = -5000;
+    const world = document.getElementById('world');
+    
+    // UNSER "SERVER" (Datenbank von 500 festen Pokémon-Positionen)
+    const serverData = [];
+    for(let i=0; i<500; i++) {
+        serverData.push({
+            id: i,
+            x: Math.random() * 9000 + 500,
+            y: Math.random() * 9000 + 500,
+            type: ["🔥", "💧", "🍃", "⚡"][Math.floor(Math.random()*4)],
+            isLoaded: false,
+            element: null
+        });
     }
 
-    function startMove(dx, dy) {
-        player.classList.add('walking');
-        move(dx, dy);
+    function updateWorld() {
+        let loadedCount = 0;
+        const viewDistance = 600; // Nur Objekte im Umkreis von 600px laden
+
+        serverData.forEach(p => {
+            // Berechne Distanz zum Spieler
+            const dx = p.x - Math.abs(posX);
+            const dy = p.y - Math.abs(posY);
+            const distance = Math.sqrt(dx*dx + dy*dy);
+
+            if(distance < viewDistance && !p.isLoaded) {
+                // SPAWN (Server schickt Daten -> Handy baut Modell)
+                const el = document.createElement('div');
+                el.className = 'entity';
+                el.innerHTML = p.type;
+                el.style.left = p.x + "px";
+                el.style.top = p.y + "px";
+                world.appendChild(el);
+                p.element = el;
+                p.isLoaded = true;
+            } else if(distance > viewDistance && p.isLoaded) {
+                // DESPAWN (Handy löscht Modell, um RAM zu sparen)
+                p.element.remove();
+                p.isLoaded = false;
+            }
+
+            if(p.isLoaded) loadedCount++;
+        });
+
+        document.getElementById('pos').innerText = `${Math.floor(Math.abs(posX))}, ${Math.floor(Math.abs(posY))}`;
+        document.getElementById('obj-count').innerText = loadedCount;
     }
 
-    function stopMove() {
-        player.classList.remove('walking');
-    }
-
-    function move(dx, dy) {
-        if(hp <= 0) return alert("Besiegt! Geh zum Center 🏥");
-        x += dx; y += dy;
-        container.style.transform = `rotateX(50deg) translate(${x}px, ${y}px)`;
+    // Steuerung
+    window.addEventListener('keydown', (e) => {
+        if(e.key === "ArrowUp") posY += 50;
+        if(e.key === "ArrowDown") posY -= 50;
+        if(e.key === "ArrowLeft") posX += 50;
+        if(e.key === "ArrowRight") posX -= 50;
         
-        // Items finden
-        if(Math.random() > 0.95) {
-            pots++; updateUI();
-            alert("Du hast einen Trank gefunden! 🧪");
-        }
-        
-        // Heilung im Center
-        if(x < -2100 && x > -2350 && y < -2100 && y > -2350) {
-            hp = 100; balls = 20; updateUI();
-        } 
-        
-        if(Math.random() > 0.7) spawn();
-    }
+        world.style.transform = `rotateX(45deg) translate(${posX}px, ${posY}px)`;
+        updateWorld();
+    });
 
-    function spawn() {
-        const p = document.createElement('div');
-        p.className = 'object poke';
-        const icons = ["🍃", "🔥", "🐢", "⚡", "🐛"];
-        p.innerHTML = icons[Math.floor(Math.random()*icons.length)];
-        p.style.left = Math.abs(x) + (Math.random()*600-300) + 2500 + "px";
-        p.style.top = Math.abs(y) + (Math.random()*600-300) + 2500 + "px";
-        container.appendChild(p);
-        setTimeout(() => p.remove(), 8000);
-    }
+    // Touch-Support für Mobile
+    let startY = 0;
+    window.addEventListener('touchstart', e => startY = e.touches[0].pageY);
+    window.addEventListener('touchmove', e => {
+        let diff = startY - e.touches[0].pageY;
+        posY -= diff * 0.1;
+        world.style.transform = `rotateX(45deg) translate(${posX}px, ${posY}px)`;
+        updateWorld();
+    });
 
-    function usePotion() {
-        if(pots > 0) {
-            pots--; hp = Math.min(100, hp + 50);
-            updateUI(); alert("Pokémon geheilt! +50 KP");
-        }
-    }
-
-    function startBattle() {
-        const pokes = document.getElementsByClassName('poke');
-        if(pokes.length > 0) {
-            currentEnemy = pokes[0].innerHTML;
-            pokes[0].remove();
-            document.getElementById('battle-enemy').innerHTML = currentEnemy;
-            document.getElementById('battle-screen').style.display = 'flex';
-        }
-    }
-
-    function battleAction(action) {
-        if(action === 'attack') {
-            xp += 40; if(xp >= 100) { xp = 0; lv++; }
-            alert("Sieg!"); endBattle();
-        } else {
-            if(balls > 0) { balls--; alert("Gefangen!"); endBattle(); }
-        }
-        updateUI();
-    }
-
-    function endBattle() { document.getElementById('battle-screen').style.display = 'none'; }
-
-    function updateUI() {
-        document.getElementById('hp-fill').style.width = hp + "%";
-        document.getElementById('xp-fill').style.width = xp + "%";
-        document.getElementById('balls').innerText = balls;
-        document.getElementById('pots').innerText = pots;
-        document.getElementById('lv').innerText = lv;
-    }
-
-    // Initial Start
-    container.style.transform = `rotateX(50deg) translate(${x}px, ${y}px)`;
-    updateUI();
+    updateWorld(); // Initialer Check
 </script>
 </body>
 </html>
