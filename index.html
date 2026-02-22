@@ -3,120 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poké-World Alpha v4</title>
+    <title>Poké-Adventure Battle Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; touch-action: none; }
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        body { margin: 0; overflow: hidden; background: #111; font-family: 'Arial Rounded MT Bold', sans-serif; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #4caf50; }
         
-        /* Erweiterte Map mit Stadtzentrum */
+        /* Die Map */
         #map { 
             position: absolute; width: 5000px; height: 5000px; 
-            background: #4caf50; 
-            background-image: 
-                /* Stadt Alabastia (Graues Rechteck in der Mitte) */
-                linear-gradient(to right, transparent 2000px, #9e9e9e 2000px, #9e9e9e 2600px, transparent 2600px),
-                linear-gradient(to bottom, transparent 2000px, #757575 2000px, #757575 2600px, transparent 2600px);
-            transition: transform 0.2s ease-out;
+            background: #4caf50; background-image: radial-gradient(rgba(0,0,0,0.1) 10%, transparent 11%);
+            background-size: 40px 40px; transition: transform 0.2s ease-out;
         }
 
-        /* Das Pokémon Center (Heilungs-Haus) */
-        #center {
-            position: absolute; top: 2200px; left: 2200px;
-            width: 100px; height: 100px; background: #ef5350;
-            border: 4px solid white; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center; font-size: 40px;
-        }
+        #center { position: absolute; top: 2200px; left: 2200px; width: 100px; height: 100px; background: #ef5350; border: 4px solid white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        #player { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 32px; transform: translate(-50%, -50%); z-index: 100; }
+        .poke { position: absolute; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 28px; z-index: 50; }
 
-        #player { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 30px; transform: translate(-50%, -50%); z-index: 100; }
-        .poke { position: absolute; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 25px; z-index: 50; }
+        /* UI Oben */
+        #ui-top { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); border: 2px solid #fff; padding: 10px; border-radius: 12px; z-index: 200; width: 180px; }
+        .bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        #xp-fill { width: 0%; height: 100%; background: #00e5ff; transition: width 0.3s; }
 
-        #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); border: 1px solid #fff; padding: 12px; border-radius: 10px; z-index: 200; width: 200px; }
-        .xp-bg { width: 100%; height: 6px; background: #333; margin: 5px 0; }
-        #xp-fill { width: 0%; height: 100%; background: #00e5ff; }
+        /* Battle Screen */
+        #battle-screen { position: absolute; inset: 0; background: white; z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px; text-align: center; }
+        .battle-poke { font-size: 80px; animation: shake 0.5s infinite alternate; }
+        @keyframes shake { from { transform: translateY(0); } to { transform: translateY(-10px); } }
 
-        #controls { position: absolute; bottom: 20px; width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; box-sizing: border-box; z-index: 300; }
-        .btn { background: rgba(255,255,255,0.25); border: 2px solid #fff; border-radius: 15px; color: #fff; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 22px; backdrop-filter: blur(5px); }
+        /* Steuerung */
+        #controls { position: absolute; bottom: 25px; width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 15px; box-sizing: border-box; z-index: 300; }
+        .btn { background: rgba(255,255,255,0.4); border: 2px solid #fff; border-radius: 15px; color: #fff; height: 65px; display: flex; align-items: center; justify-content: center; font-size: 26px; backdrop-filter: blur(5px); }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="map">
-        <div id="center">🏥</div>
+    <div id="map"><div id="center">🏥</div></div>
+    <div id="player">🧍</div>
+    <div id="ui-top">
+        <b>Lv. <span id="lv">5</span></b> <span id="p-name">Starter</span>
+        <div class="bar"><div id="xp-fill"></div></div>
+        <small>Bälle: <span id="balls">20</span></small>
     </div>
-    <div id="player">🚶‍♂️</div>
-    
-    <div id="ui">
-        <b>ORT:</b> <span id="loc">Route 1</span><br>
-        <b>TEAM:</b> <span id="p-name">Starter</span> (Lv.<span id="lv">5</span>)
-        <div class="xp-bg"><div id="xp-fill"></div></div>
-        <b>BÄLLE:</b> <span id="balls">20</span>
-    </div>
-
     <div id="controls">
         <div></div><div class="btn" onclick="move(0, 150)">▲</div><div></div>
         <div class="btn" onclick="move(150, 0)">◀</div>
-        <div class="btn" style="background: #ffcc00; color: #000;" onclick="catchAttempt()">🔴</div>
+        <div class="btn" style="background: #ffcc00; color: #000;" onclick="startBattle()">🔴</div>
         <div class="btn" onclick="move(-150, 0)">▶</div>
         <div></div><div class="btn" onclick="move(0, -150)">▼</div><div></div>
     </div>
 </div>
 
+<div id="battle-screen">
+    <h2 id="battle-msg">Ein wildes Pokémon greift an!</h2>
+    <div id="battle-enemy" class="battle-poke">❓</div>
+    <div style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button onclick="battleAction('attack')" style="padding:20px; font-size:20px; background:#ff5252; color:white; border:none; border-radius:10px;">ATTACKE</button>
+        <button onclick="battleAction('catch')" style="padding:20px; font-size:20px; background:#ffcc00; border:none; border-radius:10px;">BALL WURF</button>
+    </div>
+</div>
+
 <script>
     let x = -2100, y = -2100, balls = 20, lv = 5, xp = 0;
+    let currentEnemy = null;
     const map = document.getElementById('map');
-    const icons = {"Bisasam":"🍃","Glumanda":"🔥","Schiggy":"🐢","Pikachu":"⚡"};
+    const icons = {"Bisasam":"🍃","Glumanda":"🔥","Schiggy":"🐢","Pikachu":"⚡","Karpador":"🐟"};
 
-    // Start-Position in der Stadt
-    map.style.transform = `translate(${x}px, ${y}px)`;
+    // Lade Spielstand
+    if(localStorage.getItem('pokeSave')) {
+        const save = JSON.parse(localStorage.getItem('pokeSave'));
+        balls = save.balls; lv = save.lv; xp = save.xp;
+        document.getElementById('p-name').innerText = save.name;
+        updateUI();
+    }
 
     function move(dx, dy) {
         x += dx; y += dy;
         map.style.transform = `translate(${x}px, ${y}px)`;
-        
-        // Zonen-Logik
-        let loc = "Route 1";
-        if (x < -1800 && x > -2800 && y < -1800 && y > -2800) {
-            loc = "Alabastia";
-            if (x < -2100 && x > -2300 && y < -2100 && y > -2300) {
-                if (balls < 20) {
-                    balls = 20;
-                    alert("Im Center geheilt! Deine Bälle wurden aufgefüllt.");
-                    updateUI();
-                }
-            }
-        } else {
-            if(Math.random() > 0.85) spawn();
-        }
-        document.getElementById('loc').innerText = loc;
+        let loc = (x < -1800 && x > -2800 && y < -1800 && y > -2800) ? "Alabastia" : "Route 1";
+        if(loc === "Alabastia" && x < -2100 && x > -2300 && y < -2100 && y > -2300) {
+            balls = 20; updateUI();
+        } else if(loc !== "Alabastia" && Math.random() > 0.85) spawn();
+        saveGame();
     }
 
     function spawn() {
         const p = document.createElement('div');
         p.className = 'poke';
-        const n = Object.keys(icons)[Math.floor(Math.random()*4)];
-        p.innerHTML = icons[n];
-        p.dataset.name = n;
+        const n = Object.keys(icons)[Math.floor(Math.random()*5)];
+        p.innerHTML = icons[n]; p.dataset.name = n;
         p.style.left = (Math.random()*4000)+"px"; p.style.top = (Math.random()*4000)+"px";
         map.appendChild(p);
     }
 
-    function catchAttempt() {
+    function startBattle() {
         const pokes = document.getElementsByClassName('poke');
-        if(pokes.length > 0 && balls > 0) {
-            const caught = pokes[0].dataset.name;
+        if(pokes.length > 0) {
+            currentEnemy = pokes[0].dataset.name;
             pokes[0].remove();
-            balls--; xp += 35;
-            if(xp >= 100) { xp = 0; lv++; alert("LEVEL UP! Dein Pokémon ist jetzt Lv. " + lv); }
-            updateUI(caught);
+            document.getElementById('battle-enemy').innerText = icons[currentEnemy];
+            document.getElementById('battle-screen').style.display = 'flex';
         }
     }
 
-    function updateUI(name) {
+    function battleAction(type) {
+        if(type === 'attack') {
+            alert("Dein Pokémon greift an! Das wilde Pokémon ist geschwächt.");
+        } else {
+            if(balls > 0) {
+                balls--;
+                if(Math.random() > 0.3) {
+                    alert("Gefangen! " + currentEnemy + " wurde deinem Team hinzugefügt.");
+                    xp += 40;
+                    if(xp >= 100) { xp = 0; lv++; alert("LEVEL UP!"); }
+                    document.getElementById('p-name').innerText = currentEnemy;
+                    endBattle();
+                } else { alert("Oh nein! Es ist ausgebrochen!"); }
+            }
+        }
+        updateUI();
+    }
+
+    function endBattle() { document.getElementById('battle-screen').style.display = 'none'; saveGame(); }
+
+    function updateUI() {
         document.getElementById('balls').innerText = balls;
         document.getElementById('lv').innerText = lv;
         document.getElementById('xp-fill').style.width = xp + "%";
-        if(name) document.getElementById('p-name').innerText = name;
+    }
+
+    function saveGame() {
+        const save = { balls, lv, xp, name: document.getElementById('p-name').innerText };
+        localStorage.setItem('pokeSave', JSON.stringify(save));
     }
 </script>
 </body>
