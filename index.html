@@ -3,45 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pokémon Open World - FREE</title>
+    <title>Poké-World Mobile</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #2e7d32; }
+        body { margin: 0; overflow: hidden; background: #222; font-family: 'Courier New', Courier, monospace; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #4caf50; }
         
-        /* Die Map */
+        /* Die Map mit Texturen */
         #map { 
-            position: absolute; width: 2000px; height: 2000px; 
+            position: absolute; width: 5000px; height: 5000px; 
+            background-color: #4caf50;
             background-image: 
-                linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 100px 100px;
-            transition: transform 0.1s linear;
+                radial-gradient(#55a659 10%, transparent 11%),
+                radial-gradient(circle at 1500px 1500px, #2196f3 500px, transparent 501px); /* Großer See */
+            background-size: 60px 60px, 100% 100%;
+            transition: transform 0.2s ease-out;
         }
 
-        /* Der Spieler */
+        /* Der Spieler als Trainer-Icon */
         #player {
-            position: absolute; top: 50%; left: 50%;
-            width: 40px; height: 40px; background: #ff5252;
-            border: 3px solid white; border-radius: 10px;
-            transform: translate(-50%, -50%); z-index: 100;
+            position: absolute; top: 50%; left: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; transform: translate(-50%, -50%); z-index: 100;
         }
 
-        /* UI */
-        #ui-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 200;
+        /* Wilde Pokémon Icons */
+        .poke {
+            position: absolute; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 25px; z-index: 50; animation: bounce 1s infinite alternate;
         }
-        .stats { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; pointer-events: auto; }
-        
-        /* Steuerung */
+
+        @keyframes bounce { from { margin-top: 0; } to { margin-top: -5px; } }
+
+        /* UI Styling */
+        #ui { 
+            position: absolute; top: 15px; left: 15px; color: white; 
+            background: rgba(0,0,0,0.8); border: 2px solid white; 
+            padding: 10px; border-radius: 5px; z-index: 200; width: 150px;
+        }
+
+        /* Mobile Controls */
         #controls {
-            position: absolute; bottom: 30px; width: 100%;
-            display: flex; justify-content: space-around; pointer-events: auto;
+            position: absolute; bottom: 25px; width: 100%;
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+            padding: 15px; box-sizing: border-box; z-index: 300;
         }
-        .joy-btn {
-            width: 70px; height: 70px; background: rgba(255,255,255,0.3);
-            border: 2px solid white; border-radius: 50%; color: white;
-            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        .btn {
+            background: rgba(255,255,255,0.4); border: 2px solid #fff;
+            border-radius: 12px; color: #fff; height: 65px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -49,43 +60,64 @@
 
 <div id="game-container">
     <div id="map"></div>
-    <div id="player"></div>
+    <div id="player">🚶‍♂️</div>
     
-    <div id="ui-overlay">
-        <div class="stats">Pokémon gefangen: <span id="poke-count">0</span></div>
-        
-        <div id="controls">
-            <div class="joy-btn" onclick="move(0, 50)">HOCH</div>
-            <div class="joy-btn" onclick="move(0, -50)">RUNTER</div>
-            <div class="joy-btn" onclick="move(50, 0)">LINKS</div>
-            <div class="joy-btn" onclick="move(-50, 0)">RECHTS</div>
-            <div class="joy-btn" style="background: #ffd700; color: black;" onclick="catchPoke()">FANGEN</div>
-        </div>
+    <div id="ui">
+        <b>BALLS:</b> <span id="ball-count">15</span><br>
+        <b>TEAM:</b> <span id="last-caught">---</span>
+    </div>
+
+    <div id="controls">
+        <div></div><div class="btn" onclick="move(0, 120)">▲</div><div></div>
+        <div class="btn" onclick="move(120, 0)">◀</div>
+        <div class="btn" style="background: #ffcc00; color: black; border-color: black;" onclick="catchAttempt()">🔴</div>
+        <div class="btn" onclick="move(-120, 0)">▶</div>
+        <div></div><div class="btn" onclick="move(0, -120)">▼</div><div></div>
     </div>
 </div>
 
 <script>
-    let posX = 0; let posY = 0; let count = 0;
+    let x = 0; let y = 0; let balls = 15;
     const map = document.getElementById('map');
+    const pokeIcons = {
+        "Bisasam": "🍃", "Glumanda": "🔥", "Schiggy": "🐢", 
+        "Pikachu": "⚡", "Taubsi": "🐦", "Karpador": "🐟"
+    };
 
     function move(dx, dy) {
-        posX += dx; posY += dy;
-        map.style.transform = `translate(${posX}px, ${posY}px)`;
-        checkSpawn();
+        x += dx; y += dy;
+        map.style.transform = `translate(${x}px, ${y}px)`;
+        if(Math.random() > 0.85) spawn();
     }
 
-    function checkSpawn() {
-        if(Math.random() > 0.8) {
-            console.log("Ein wildes Pokémon ist in der Nähe!");
+    function spawn() {
+        const p = document.createElement('div');
+        p.className = 'poke';
+        const names = Object.keys(pokeIcons);
+        const name = names[Math.floor(Math.random()*names.length)];
+        p.innerHTML = pokeIcons[name];
+        p.dataset.name = name;
+        // Spawnt zufällig im Umkreis
+        p.style.left = (Math.random() * 4000) + "px";
+        p.style.top = (Math.random() * 4000) + "px";
+        map.appendChild(p);
+    }
+
+    function catchAttempt() {
+        const nearPokes = document.getElementsByClassName('poke');
+        if(nearPokes.length > 0 && balls > 0) {
+            const caught = nearPokes[0].dataset.name;
+            nearPokes[0].remove();
+            balls--;
+            document.getElementById('ball-count').innerText = balls;
+            document.getElementById('last-caught').innerText = caught;
+            alert("Erfolg! " + caught + " wurde gefangen!");
+        } else if (balls <= 0) {
+            alert("Keine Pokébälle mehr!");
+        } else {
+            alert("Kein Pokémon in Sicht!");
         }
     }
-
-    function catchPoke() {
-        count++;
-        document.getElementById('poke-count').innerText = count;
-        alert("Du hast ein wildes Pokémon gefangen!");
-    }
 </script>
-
 </body>
 </html>
